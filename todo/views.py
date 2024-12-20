@@ -81,3 +81,40 @@ class ChoiceView(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TodoView(View):
+    def post(self, request):
+        data = json.loads(request.body)  # Parse JSON body
+        todo = Todo.objects.create(text=data['text'], completed=False)
+        todo.save()
+        return JsonResponse({'id': todo.id, 'text': todo.text}, safe=False)
+
+    def get(self, request):
+        all_todos = Todo.objects.all()
+        return JsonResponse( {'todos': list(all_todos.values())}, safe=False)
+
+
+    def put(self, request):
+        try:
+            data = json.loads(request.body)  # Parse JSON body
+            todo = Todo.objects.get(id=data['id'])  # Fetch the todo by id
+            # Update fields only if they are provided in the request body
+            if 'text' in data:
+                todo.text = data['text']
+            if 'completed' in data:
+                todo.completed = data['completed']
+            todo.save()  # Save the updated todo
+            return JsonResponse({'message': 'Todo updated successfully.', 'id': data['id']}, safe=False)
+        except Todo.DoesNotExist:
+            return JsonResponse({'error': 'Todo not found.'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+        
+    def delete(self, request):
+        try:
+            data = json.loads(request.body)  # Parse JSON body
+            todo = Todo.objects.get(id=data['id'])  # Fetch the todo by id
+            todo.delete()  # Delete the todo
+            return JsonResponse({'message': 'Todo deleted successfully.', 'id': data['id']}, safe=False)
+        except Todo.DoesNotExist:
+            return JsonResponse({'error': 'Todo not found.'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
